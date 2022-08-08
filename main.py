@@ -28,10 +28,41 @@ class DrawInfo:
 
     def set_list(self, star_list):
         self.star_list = star_list
-        
 
-def draw(draw_info, ship, show_all_star_names):
+
+class Line:
+    def __init__(self, start_x, start_y, end_x, end_y):
+        self.start_x = start_x
+        self.start_y = start_y
+
+        self.end_x = end_x
+        self.end_y = end_y
+
+        self.line = None
+
+    def get_start_x(self):
+        return self.start_x
+
+    def get_start_y(self):
+        return self.start_y
+
+    def get_end_x(self):
+        return self.end_x
+
+    def get_end_y(self):
+        return self.end_y
+
+
+
+def draw_line(draw_info, line):
+    if line:
+        line.line = pygame.draw.line(draw_info.window, draw_info.WHITE,
+                                     (line.start_x, line.start_y), (line.end_x, line.end_y))
+
+def draw(draw_info, ship, show_all_star_names, line):
     draw_info.window.fill(draw_info.BACKGROUND_COLOR)
+
+    draw_line(draw_info, line)
 
     draw_ship(draw_info, ship)
     draw_stars(draw_info, show_all_star_names)
@@ -49,6 +80,8 @@ def main():
     moving = False
 
     show_all_star_names = False
+
+    line = None
 
     draw_info = DrawInfo(width, height)
     draw_info.set_list(generate_star_list(draw_info, 50))
@@ -69,7 +102,7 @@ def main():
                 moving = False
                 # print('done moving')
 
-        draw(draw_info, ship, show_all_star_names)
+        draw(draw_info, ship, show_all_star_names, line)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -79,17 +112,19 @@ def main():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # left click
                 if event.button == 1:
-                    moving = True
-                    move_x = Mouse_x
-                    move_y = Mouse_y
+                    for star in draw_info.star_list:
+                        if star.is_selected():
+                            move_x, move_y = star.get_x(), star.get_y()
+                            moving = True
 
                 # right click
                 elif event.button == 3:
                     for star in draw_info.star_list:
                         # if they right clicked on a star
                         if has_mouse_hover(star, event.pos):
-                            move_x, move_y = star.get_x(), star.get_y()
-                            moving = True
+                            star.show_circle()
+                        else:
+                            star.hide_circle()
 
             if event.type == pygame.MOUSEMOTION:
                 for star in draw_info.star_list:
@@ -105,6 +140,15 @@ def main():
             if event.key == pygame.K_s:
                 # toggle
                 show_all_star_names = not show_all_star_names
+
+            # show path
+            elif event.key == pygame.K_p:
+                # draw line between you and the star
+                # line = Line()
+                line = None
+                for star in draw_info.star_list:
+                    if star.is_selected():
+                        line = Line(ship.x, ship.y, star.get_x(), star.get_y())
 
     pygame.quit()
 
