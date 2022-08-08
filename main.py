@@ -1,4 +1,5 @@
 
+from ast import Num
 import pygame
 
 from Classes.Star import *
@@ -53,11 +54,11 @@ class Line:
         return self.end_y
 
 
-
 def draw_line(draw_info, line):
     if line:
         line.line = pygame.draw.line(draw_info.window, draw_info.WHITE,
                                      (line.start_x, line.start_y), (line.end_x, line.end_y))
+
 
 def draw(draw_info, ship, show_all_star_names, line):
     draw_info.window.fill(draw_info.BACKGROUND_COLOR)
@@ -88,18 +89,21 @@ def main():
 
     ship = Ship(draw_info)
 
-    move_x, move_y = ship.x, ship.y
+    # move_x, move_y = ship.x, ship.y
+    step_x = None 
+    step_y = None
 
     while run:
         clock.tick(60)
 
-        Mouse_x, Mouse_y = pygame.mouse.get_pos()
+        # Mouse_x, Mouse_y = pygame.mouse.get_pos()
 
         if moving:
-            ship.move(move_x, move_y)
+            ship.move(step_x, step_y)
 
-            if abs(move_x - ship.x) < 5 and abs(move_y - ship.y) < 5:
+            if abs(move_x - ship.get_x()) < 1 and abs(move_y - ship.get_y()) < 1:
                 moving = False
+                print(ship.get_fuel())
                 # print('done moving')
 
         draw(draw_info, ship, show_all_star_names, line)
@@ -112,10 +116,7 @@ def main():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # left click
                 if event.button == 1:
-                    for star in draw_info.star_list:
-                        if star.is_selected():
-                            move_x, move_y = star.get_x(), star.get_y()
-                            moving = True
+                    pass
 
                 # right click
                 elif event.button == 3:
@@ -141,14 +142,34 @@ def main():
                 # toggle
                 show_all_star_names = not show_all_star_names
 
+            elif event.key == pygame.K_SPACE:
+                for star in draw_info.star_list:
+                    if star.is_selected():
+                        move_x, move_y = star.get_x(), star.get_y()
+
+                        # set movement iterations
+                        distance_x = (move_x - ship.get_x())
+                        distance_y = (move_y - ship.get_y())
+
+                        # num_steps = abs(distance_x) + abs(distance_x)
+                        num_steps = 45
+
+                        step_x = (distance_x / num_steps)
+                        step_y = (distance_y / num_steps)
+
+                        moving = True
+
             # show path
             elif event.key == pygame.K_p:
                 # draw line between you and the star
                 # line = Line()
-                line = None
                 for star in draw_info.star_list:
                     if star.is_selected():
-                        line = Line(ship.x, ship.y, star.get_x(), star.get_y())
+                        if line:
+                            line = None
+                        else:
+                            line = Line(ship.get_x(), ship.get_y(),
+                                        star.get_x(), star.get_y())
 
     pygame.quit()
 
