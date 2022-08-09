@@ -13,7 +13,16 @@ class Star:
         self.name = name
         self.name_visibility = False
         self.circle_visibility = False
+        self.distance_visibility = False
         self.rect = None
+
+        self.distance = 0
+
+    def set_distance(self, distance):
+        self.distance = distance
+
+    def get_distance(self):
+        return self.distance
 
     def get_x(self):
         return self.x
@@ -29,6 +38,12 @@ class Star:
 
     def show_name(self):
         self.name_visibility = True
+
+    def show_distance(self):
+        self.distance_visibility = True
+
+    def hide_distance(self):
+        self.distance_visibility = False
 
     def hide_name(self):
         self.name_visibility = False
@@ -51,6 +66,11 @@ class Star:
         if self.circle_visibility:
             pygame.draw.circle(draw_info.window, draw_info.WHITE,
                                (self.x+1, self.y+1), 8, width=1)
+
+        if self.distance_visibility or show_all_star_names:
+            distance_label = draw_info.FONT.render(f'{str(round(self.distance / 10, 2))} LY', 1, draw_info.WHITE)
+            draw_info.window.blit(
+                distance_label, (self.x - distance_label.get_width()/2, self.y + 12))
 
 
 def has_mouse_hover(star, mouse):

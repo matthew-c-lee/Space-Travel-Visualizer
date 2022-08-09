@@ -12,7 +12,8 @@ class DrawInfo:
     BLACK = 0, 0, 0
     WHITE = 255, 255, 255
 
-    FONT = pygame.font.SysFont('', 15)
+    FONT = pygame.font.SysFont('', 17)
+    LARGE_FONT = pygame.font.SysFont('', 22)
 
     BACKGROUND_COLOR = BLACK
 
@@ -63,12 +64,27 @@ def draw_line(draw_info, line):
 def draw(draw_info, ship, show_all_star_names, line):
     draw_info.window.fill(draw_info.BACKGROUND_COLOR)
 
+    fuel_outline = pygame.draw.rect(draw_info.window, draw_info.WHITE, (25, draw_info.height - 50, 120, 25), width=2)
+    fuel_bar = pygame.draw.rect(draw_info.window, draw_info.WHITE, (fuel_outline.left, fuel_outline.top, fuel_outline.width * (ship.get_fuel()/ship.MAX_FUEL), fuel_outline.height))
+
+
+    fuel_label = draw_info.LARGE_FONT.render('Solar Energy', 1, draw_info.WHITE)
+    draw_info.window.blit(fuel_label, (fuel_outline.left, fuel_outline.top - 15))
+
+
+
     draw_line(draw_info, line)
 
     draw_ship(draw_info, ship)
     draw_stars(draw_info, show_all_star_names)
 
+
     pygame.display.update()
+
+def calculate_star_distance(star, ship):
+    distance_x = (star.get_x() - ship.get_x())
+    distance_y = (star.get_y() - ship.get_y())
+    return (abs(distance_x) + abs(distance_y))
 
 
 def main():
@@ -89,6 +105,8 @@ def main():
 
     ship = Ship(draw_info)
 
+    recharging = False
+
     # move_x, move_y = ship.x, ship.y
     step_x = None 
     step_y = None
@@ -98,19 +116,27 @@ def main():
 
         # Mouse_x, Mouse_y = pygame.mouse.get_pos()
 
-        if moving:
-            ship.move(step_x, step_y)
+        if recharging and (ship.get_fuel() < ship.MAX_FUEL):
+            ship.fuel += 2
 
-            if abs(move_x - ship.get_x()) < 1 and abs(move_y - ship.get_y()) < 1:
+        if moving:
+            for star in draw_info.star_list:
+                distance_to_star = calculate_star_distance(ship, star)
+                star.set_distance(distance_to_star)
+
+            if abs(move_x - ship.get_x()) < 1 and abs(move_y - ship.get_y()) < 1 or ship.get_fuel() <= 0:
                 moving = False
-                print(ship.get_fuel())
-                # print('done moving')
+            else:
+                ship.move(step_x, step_y)
+
 
         draw(draw_info, ship, show_all_star_names, line)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+
+
 
             # move ship
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -129,47 +155,69 @@ def main():
 
             if event.type == pygame.MOUSEMOTION:
                 for star in draw_info.star_list:
+                    # hovering over star
                     if has_mouse_hover(star, event.pos):
                         star.show_name()
+
+                        distance_to_star = calculate_star_distance(ship, star)
+                        star.set_distance(distance_to_star)
+
+                        star.show_distance()
                     else:
                         star.hide_name()
+                        star.hide_distance()
 
-            if event.type != pygame.KEYDOWN:
-                continue
+            if event.type == pygame.KEYDOWN:
 
-            # show all star names
-            if event.key == pygame.K_s:
-                # toggle
-                show_all_star_names = not show_all_star_names
+                # show all star names
+                if event.key == pygame.K_s:
+                    for star in draw_info.star_list:
+                        distance_to_star = calculate_star_distance(ship, star)
+                        star.set_distance(distance_to_star)
+                    # toggle
+                    show_all_star_names = not show_all_star_names
 
-            elif event.key == pygame.K_SPACE:
-                for star in draw_info.star_list:
-                    if star.is_selected():
-                        move_x, move_y = star.get_x(), star.get_y()
+                elif event.key == pygame.K_SPACE:
+                    for star in draw_info.star_list:
+                        if star.is_selected():
+                            move_x, move_y = star.get_x(), star.get_y()
 
-                        # set movement iterations
-                        distance_x = (move_x - ship.get_x())
-                        distance_y = (move_y - ship.get_y())
+                            # set movement iterations
+                            distance_x = (move_x - ship.get_x())
+                            distance_y = (move_y - ship.get_y())
 
-                        # num_steps = abs(distance_x) + abs(distance_x)
-                        num_steps = 45
+                            num_steps = (abs(distance_x) + abs(distance_y)) * 8
+                            # num_steps = 45
 
-                        step_x = (distance_x / num_steps)
-                        step_y = (distance_y / num_steps)
+                            step_x = (distance_x / num_steps)
+                            step_y = (distance_y / num_steps)
 
-                        moving = True
+                            moving = True
 
-            # show path
-            elif event.key == pygame.K_p:
-                # draw line between you and the star
-                # line = Line()
-                for star in draw_info.star_list:
-                    if star.is_selected():
-                        if line:
-                            line = None
-                        else:
-                            line = Line(ship.get_x(), ship.get_y(),
-                                        star.get_x(), star.get_y())
+                # show path
+                elif event.key == pygame.K_p:
+                    # draw line between you and the star
+                    # line = Line()
+                    for star in draw_info.star_list:
+                        if star.is_selected():
+                            if line:
+                                line = None
+                            else:
+                                line = Line(ship.get_x(), ship.get_y(),
+                                            star.get_x(), star.get_y())
+
+
+                # recharge fuel
+                if event.key == pygame.K_r:
+                    closest_star = ship.calculate_closest_star(draw_info.star_list)
+
+                    if ship.get_fuel() < ship.MAX_FUEL and calculate_star_distance(ship, closest_star) < 3: 
+                        recharging = True
+
+            elif event.type == pygame.KEYUP:    
+                # stop recharging fuel
+                if event.key == pygame.K_r:
+                    recharging = False
 
     pygame.quit()
 
