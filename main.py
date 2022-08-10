@@ -4,6 +4,7 @@ import pygame
 
 from Classes.Star import *
 from Classes.Ship import *
+from Classes.Galaxy import *
 
 pygame.init()
 
@@ -23,13 +24,61 @@ class DrawInfo:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.star_list = None
+        # self.galaxy = None
 
         self.window = pygame.display.set_mode((width, height))
         pygame.display.set_caption('Space Exploration')
 
-    def set_list(self, star_list):
-        self.star_list = star_list
+    # draw a line
+
+    def draw_line(self, line):
+        if line:
+            line.line = pygame.draw.line(self.window, self.WHITE,
+                                         (line.start_x, line.start_y), (line.end_x, line.end_y))
+
+    # draw line from one star to another
+    def draw_star_line(self, star1, star2):
+        lineObject = Line(star1.get_x(), star1.get_y(),
+                          star2.get_x(), star2.get_y())
+
+        lineObject.line = pygame.draw.line(self.window, self.WHITE,
+                                           (lineObject.start_x, lineObject.start_y), (lineObject.end_x, lineObject.end_y))
+
+    # draw entire given star path
+    def draw_stars_path(self, star_list):
+        if star_list.show_star_path:
+            for i in range(len(star_list) - 1):
+                self.draw_star_line(star_list[i], star_list[i+1])
+
+    # draw fuel indicator
+    def draw_fuel(self, ship):
+        fuel_outline = pygame.draw.rect(
+            self.window, self.WHITE, (25, self.height - 50, 120, 25), width=2)
+        fuel_bar = pygame.draw.rect(self.window, self.WHITE, (fuel_outline.left, fuel_outline.top,
+                                    fuel_outline.width * (ship.get_fuel()/ship.get_max_fuel()), fuel_outline.height))
+
+        fuel_label = self.LARGE_FONT.render(
+            'Solar Energy', 1, self.WHITE)
+        self.window.blit(
+            fuel_label, (fuel_outline.left, fuel_outline.top - 15))
+
+    # draw everything. updated each iteration of game loop
+    def draw(self, ship, line, star_list):
+        self.window.fill(self.BACKGROUND_COLOR)
+
+        self.draw_fuel(ship)
+
+        # test code
+        # test_star_list = star_list.list[0:4]
+        # self.draw_stars_path(test_star_list)
+
+        # draw line to selected star
+        # self.draw_line(line)
+
+        ship.draw(self)
+        star_list.draw_stars(self)
+
+        pygame.display.update()
 
 
 class Line:
@@ -55,31 +104,10 @@ class Line:
         return self.end_y
 
 
-def draw_line(draw_info, line):
-    if line:
-        line.line = pygame.draw.line(draw_info.window, draw_info.WHITE,
-                                     (line.start_x, line.start_y), (line.end_x, line.end_y))
+def list_to_tree(list):
+    # treenode = TreeNode()
+    pass
 
-
-def draw(draw_info, ship, show_all_star_names, line):
-    draw_info.window.fill(draw_info.BACKGROUND_COLOR)
-
-    fuel_outline = pygame.draw.rect(draw_info.window, draw_info.WHITE, (25, draw_info.height - 50, 120, 25), width=2)
-    fuel_bar = pygame.draw.rect(draw_info.window, draw_info.WHITE, (fuel_outline.left, fuel_outline.top, fuel_outline.width * (ship.get_fuel()/ship.MAX_FUEL), fuel_outline.height))
-
-
-    fuel_label = draw_info.LARGE_FONT.render('Solar Energy', 1, draw_info.WHITE)
-    draw_info.window.blit(fuel_label, (fuel_outline.left, fuel_outline.top - 15))
-
-
-
-    draw_line(draw_info, line)
-
-    draw_ship(draw_info, ship)
-    draw_stars(draw_info, show_all_star_names)
-
-
-    pygame.display.update()
 
 def calculate_star_distance(star, ship):
     distance_x = (star.get_x() - ship.get_x())
@@ -96,31 +124,31 @@ def main():
 
     moving = False
 
-    show_all_star_names = False
+    recharging = False
 
     line = None
 
+    step_x = None
+    step_y = None
+
     draw_info = DrawInfo(width, height)
-    draw_info.set_list(generate_star_list(draw_info, 50))
+    # star_list = generate_star_list(draw_info, 50)
+    galaxy = Galaxy(draw_info, 50)
 
     ship = Ship(draw_info)
 
-    recharging = False
-
     # move_x, move_y = ship.x, ship.y
-    step_x = None 
-    step_y = None
 
     while run:
         clock.tick(60)
 
         # Mouse_x, Mouse_y = pygame.mouse.get_pos()
 
-        if recharging and (ship.get_fuel() < ship.MAX_FUEL):
+        if recharging and (ship.get_fuel() < ship.get_max_fuel()):
             ship.fuel += 2
 
         if moving:
-            for star in draw_info.star_list:
+            for star in galaxy.stars:
                 distance_to_star = calculate_star_distance(ship, star)
                 star.set_distance(distance_to_star)
 
@@ -129,14 +157,12 @@ def main():
             else:
                 ship.move(step_x, step_y)
 
-
-        draw(draw_info, ship, show_all_star_names, line)
+        draw_info.draw(ship, line, galaxy)
+        # show_star_path = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-
-
 
             # move ship
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -146,7 +172,7 @@ def main():
 
                 # right click
                 elif event.button == 3:
-                    for star in draw_info.star_list:
+                    for star in galaxy.stars:
                         # if they right clicked on a star
                         if has_mouse_hover(star, event.pos):
                             star.show_circle()
@@ -154,7 +180,7 @@ def main():
                             star.hide_circle()
 
             if event.type == pygame.MOUSEMOTION:
-                for star in draw_info.star_list:
+                for star in galaxy.stars:
                     # hovering over star
                     if has_mouse_hover(star, event.pos):
                         star.show_name()
@@ -171,14 +197,14 @@ def main():
 
                 # show all star names
                 if event.key == pygame.K_s:
-                    for star in draw_info.star_list:
+                    for star in galaxy:
                         distance_to_star = calculate_star_distance(ship, star)
                         star.set_distance(distance_to_star)
                     # toggle
-                    show_all_star_names = not show_all_star_names
+                    galaxy.show_all_names = not galaxy.show_all_names
 
                 elif event.key == pygame.K_SPACE:
-                    for star in draw_info.star_list:
+                    for star in galaxy.stars:
                         if star.is_selected():
                             move_x, move_y = star.get_x(), star.get_y()
 
@@ -186,7 +212,7 @@ def main():
                             distance_x = (move_x - ship.get_x())
                             distance_y = (move_y - ship.get_y())
 
-                            num_steps = (abs(distance_x) + abs(distance_y)) * 8
+                            num_steps = (abs(distance_x) + abs(distance_y)) * 4
                             # num_steps = 45
 
                             step_x = (distance_x / num_steps)
@@ -194,11 +220,15 @@ def main():
 
                             moving = True
 
+                # show star path
+                elif event.key == pygame.K_w:
+                    galaxy.show_star_path = not galaxy.show_star_path
+
                 # show path
                 elif event.key == pygame.K_p:
                     # draw line between you and the star
                     # line = Line()
-                    for star in draw_info.star_list:
+                    for star in galaxy.stars:
                         if star.is_selected():
                             if line:
                                 line = None
@@ -206,15 +236,14 @@ def main():
                                 line = Line(ship.get_x(), ship.get_y(),
                                             star.get_x(), star.get_y())
 
-
                 # recharge fuel
                 if event.key == pygame.K_r:
-                    closest_star = ship.calculate_closest_star(draw_info.star_list)
+                    closest_star = ship.calculate_closest_star(galaxy)
 
-                    if ship.get_fuel() < ship.MAX_FUEL and calculate_star_distance(ship, closest_star) < 3: 
+                    if ship.get_fuel() < ship.get_max_fuel() and calculate_star_distance(ship, closest_star) < 3:
                         recharging = True
 
-            elif event.type == pygame.KEYUP:    
+            elif event.type == pygame.KEYUP:
                 # stop recharging fuel
                 if event.key == pygame.K_r:
                     recharging = False

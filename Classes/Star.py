@@ -1,7 +1,5 @@
 import random
 import pygame
-import requests
-from xml.etree import ElementTree as ET
 
 
 class Star:
@@ -61,53 +59,19 @@ class Star:
         if self.name_visibility or show_all_star_names:
             star_name = draw_info.FONT.render(self.name, 1, draw_info.WHITE)
             draw_info.window.blit(
-                star_name, (self.x - star_name.get_width()/2, self.y - 12))
+                star_name, (self.x - star_name.get_width()/2, self.y - 14))
 
         if self.circle_visibility:
             pygame.draw.circle(draw_info.window, draw_info.WHITE,
                                (self.x+1, self.y+1), 8, width=1)
 
         if self.distance_visibility or show_all_star_names:
-            distance_label = draw_info.FONT.render(f'{str(round(self.distance / 10, 2))} LY', 1, draw_info.WHITE)
+            distance_label = draw_info.FONT.render(
+                f'{str(round(self.distance / 10, 2))} LY', 1, draw_info.WHITE)
             draw_info.window.blit(
-                distance_label, (self.x - distance_label.get_width()/2, self.y + 12))
+                distance_label, (self.x - distance_label.get_width()/2, self.y + 8))
 
 
 def has_mouse_hover(star, mouse):
     # if hovering, return true
     return star.rect.collidepoint(mouse)
-
-
-# use Sky-Map API to generate stars
-def generate_star_list(draw_info, num_stars):
-    params = {
-        'ra': 40,
-        'de': 100,
-        'angle': 90,
-        'max_stars': num_stars,
-        'max_vmag': 100,
-    }
-
-    response = requests.get("https://server2.sky-map.org/getstars.jsp", params)
-
-    tree = ET.fromstring(response.content)
-
-    star_data = tree.findall('star')
-
-    lst = []
-    for star in star_data:
-        name = star.find('catId').text
-        star = Star(draw_info, name)
-        lst.append(star)
-
-    return lst
-
-
-def draw_stars(draw_info, show_all_star_names, clear_bg=False):
-    stars = draw_info.star_list
-
-    for star in stars:
-        star.draw(draw_info, show_all_star_names)
-
-    if clear_bg:
-        pygame.display.update()
