@@ -3,11 +3,14 @@ import pygame
 
 
 class Star:
-    def __init__(self, draw_info, name=''):
+    def __init__(self, width, height, name=''):
+        # add 25 px all around so star names are always visible
+        PADDING = 25
+
         self.x = random.randint(
-            draw_info.PAD_X, draw_info.width - draw_info.PAD_X)
+            PADDING, width - PADDING)
         self.y = random.randint(
-            draw_info.PAD_Y, draw_info.height - draw_info.PAD_Y)
+            PADDING, height - PADDING)
         self.name = name
         self.name_visibility = False
         self.circle_visibility = False
@@ -52,26 +55,9 @@ class Star:
     def hide_circle(self):
         self.circle_visibility = False
 
-    def draw(self, draw_info, show_all_star_names):
-        self.rect = pygame.draw.rect(draw_info.window, draw_info.WHITE,
-                                     (self.x, self.y, 3, 3))
-
-        if self.name_visibility or show_all_star_names:
-            star_name = draw_info.FONT.render(self.name, 1, draw_info.WHITE)
-            draw_info.window.blit(
-                star_name, (self.x - star_name.get_width()/2, self.y - 14))
-
-        if self.circle_visibility:
-            pygame.draw.circle(draw_info.window, draw_info.WHITE,
-                               (self.x+1, self.y+1), 8, width=1)
-
-        if self.distance_visibility or show_all_star_names:
-            distance_label = draw_info.FONT.render(
-                f'{str(round(self.distance / 10, 2))} LY', 1, draw_info.WHITE)
-            draw_info.window.blit(
-                distance_label, (self.x - distance_label.get_width()/2, self.y + 8))
 
 
-def has_mouse_hover(star, mouse):
-    # if hovering, return true
-    return star.rect.collidepoint(mouse)
+
+    def has_mouse_hover(self, mouse):
+        # if hovering, return true
+        return self.rect.collidepoint(mouse)
