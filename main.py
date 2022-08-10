@@ -27,7 +27,7 @@ def main():
 
     moving = False
 
-    recharging = False
+    is_recharging = False
 
     line = None
 
@@ -45,8 +45,8 @@ def main():
         clock.tick(60)
 
         # Mouse_x, Mouse_y = pygame.mouse.get_pos()
-
-        if recharging and (ship.get_fuel() < ship.get_max_fuel()):
+        has_max_fuel = ship.get_fuel() >= ship.get_max_fuel()
+        if is_recharging and not has_max_fuel:
             ship.fuel += 2
 
         if moving:
@@ -54,7 +54,9 @@ def main():
                 distance_to_star = calculate_star_distance(ship, star)
                 star.set_distance(distance_to_star)
 
-            if abs(move_x - ship.get_x()) < 1 and abs(move_y - ship.get_y()) < 1 or ship.get_fuel() <= 0:
+            has_no_fuel = ship.get_fuel() <= 0
+            has_reached_destination = abs(move_x - ship.get_x()) < 1 and abs(move_y - ship.get_y()) < 1
+            if has_reached_destination or has_no_fuel:
                 moving = False
             else:
                 ship.move(step_x, step_y)
@@ -85,11 +87,11 @@ def main():
                 for star in galaxy.stars:
                     # hovering over star
                     if star.has_mouse_hover(event.pos):
-                        star.show_name()
-
+                        # update distance info
                         distance_to_star = calculate_star_distance(ship, star)
                         star.set_distance(distance_to_star)
 
+                        star.show_name()
                         star.show_distance()
                     else:
                         star.hide_name()
@@ -141,13 +143,15 @@ def main():
                 if event.key == pygame.K_r:
                     closest_star = ship.calculate_closest_star(galaxy)
 
-                    if ship.get_fuel() < ship.get_max_fuel() and calculate_star_distance(ship, closest_star) < 3:
-                        recharging = True
+                    is_close_enough = calculate_star_distance(ship, closest_star) < 3
+                    has_max_fuel = ship.get_fuel() >= ship.get_max_fuel()
+                    if not has_max_fuel and is_close_enough:
+                        is_recharging = True
 
             elif event.type == pygame.KEYUP:
                 # stop recharging fuel
                 if event.key == pygame.K_r:
-                    recharging = False
+                    is_recharging = False
 
     pygame.quit()
 
