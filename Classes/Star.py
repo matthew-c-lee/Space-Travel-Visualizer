@@ -17,13 +17,13 @@ class Star:
         self.distance_visibility = False
         self.rect = None
 
-        self.distance = 0
+        self.distance_from_ship = 0
 
-    def set_distance(self, distance):
-        self.distance = distance
+    def set_distance_from_ship(self, distance_from_ship):
+        self.distance_from_ship = distance_from_ship
 
-    def get_distance(self):
-        return self.distance
+    def get_distance_from_ship(self):
+        return self.distance_from_ship
 
     def get_x(self):
         return self.x

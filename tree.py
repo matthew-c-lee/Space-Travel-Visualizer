@@ -52,7 +52,7 @@ def insertRec(root, key):
 
 
 def inorderRec(root):
-    if (root != None):
+    if not root:
         inorderRec(root.left)
         print(root.key, end=" ")
         inorderRec(root.right)

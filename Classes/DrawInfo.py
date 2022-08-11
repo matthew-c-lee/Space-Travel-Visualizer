@@ -1,7 +1,7 @@
 import pygame
-from Classes.Line import *
 
 pygame.init()
+
 
 class DrawInfo:
     BLACK = 0, 0, 0
@@ -23,20 +23,14 @@ class DrawInfo:
         self.window = pygame.display.set_mode((width, height))
         pygame.display.set_caption('Space Exploration')
 
-    # draw a line
-
-    def draw_line(self, line):
-        if line:
-            line.line = pygame.draw.line(self.window, self.WHITE,
-                                         (line.start_x, line.start_y), (line.end_x, line.end_y))
-
     # draw line from one star to another
-    def draw_star_line(self, star1, star2):
-        lineObject = Line(star1.get_x(), star1.get_y(),
-                          star2.get_x(), star2.get_y())
+    def draw_line(self, start_x, start_y, end_x, end_y):
+        pygame.draw.line(self.window, self.WHITE,
+                         [start_x, start_y], [end_x, end_y])
 
-        lineObject.line = pygame.draw.line(self.window, self.WHITE,
-                                           (lineObject.start_x, lineObject.start_y), (lineObject.end_x, lineObject.end_y))
+    def draw_star_line(self, start_star, end_star):
+        pygame.draw.line(self.window, self.WHITE,
+                         [start_star.get_x(), start_star.get_y()], [end_star.get_x(), end_star.get_y()])
 
     # draw entire given star path
     def draw_stars_path(self, galaxy):
@@ -58,7 +52,7 @@ class DrawInfo:
 
     def draw_ship(self, ship):
         pygame.draw.rect(self.window, self.WHITE,
-                        (ship.get_x(), ship.get_y(), 15, 15))
+                         (ship.get_x(), ship.get_y(), 15, 15))
 
     def draw_galaxy(self, galaxy, clear_bg=False):
         for star in galaxy.get_stars():
@@ -82,22 +76,27 @@ class DrawInfo:
 
         if star.distance_visibility or show_all_star_names:
             distance_label = self.FONT.render(
-                f'{str(round(star.distance / 10, 2))} LY', 1, self.WHITE)
+                f'{str(round(star.get_distance_from_ship() / 10, 2))} LY', 1, self.WHITE)
             self.window.blit(
                 distance_label, (star.x - distance_label.get_width()/2, star.y + 8))
 
-    # draw everything. updated each iteration of game loop
-    def draw(self, ship, line, galaxy):
+    def draw_best_path(self, best_path):
+        if best_path:
+
+            for i in range(len(best_path) - 1):
+                start_star = best_path[i]
+                end_star = best_path[i+1]
+                self.draw_line(start_star.get_x(), start_star.get_y(), end_star.get_x(), end_star.get_y())
+                # self.draw_star_line(best_path[i], best_path[i+1])
+            # draw everything. updated each iteration of game loop
+
+    def draw(self, ship, best_path, galaxy):
         self.window.fill(self.BACKGROUND_COLOR)
 
         self.draw_fuel(ship)
 
-        # test code
-        # test_star_list = star_list.list[0:4]
-        # self.draw_galaxy_path(test_star_list)
-
         # draw line to selected star
-        # self.draw_line(line)
+        self.draw_best_path(best_path)
 
         self.draw_ship(ship)
         self.draw_galaxy(galaxy)
