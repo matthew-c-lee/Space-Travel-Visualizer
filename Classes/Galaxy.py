@@ -21,14 +21,12 @@ class Galaxy:
         self.destination_x = x
         self.destination_y = y
 
-    def sort_by_closeness(self, ship):
-        return self.stars
-
     def get_selected_star(self):
         return self.selected_star
 
-    # def get_distance_from_destination(self, star):
-    #     return math.dist([star.get_x(), star.get_y()], [self.selected_star.get_x(), self.selected_star.get_y()])
+    def set_selected_star(self, star):
+        self.selected_star = star
+
     def get_distance_from_destination(self, star):
         return math.dist([star.get_x(), star.get_y()], [self.destination_x, self.destination_y])
 

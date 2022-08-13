@@ -10,13 +10,46 @@ from Classes.Galaxy import *
 from Classes.DrawInfo import *
 
 
-def list_to_tree(list):
-    # treenode = TreeNode()
-    pass
+def find_best_path(galaxy, ship):
+    best_path = []
+
+    current_x, current_y = ship.get_x(), ship.get_y()
+
+    galaxy.set_destination(current_x, current_y)
+
+    last_star_in_path = None
+    # run until it reaches the final star
+    while(last_star_in_path != galaxy.get_selected_star()):
+        sorted_list = sorted(
+            galaxy.get_stars(), key=galaxy.get_distance_from_destination)
+
+        # loop through stars until it finds a star that will bring it closer to
+        # the destination, then break
+        for star in sorted_list:
+            if is_closer_to_destination(current_x, current_y, star, galaxy.get_selected_star()):
+                best_path.append(star)
+                last_star_in_path = star
+
+                # update coordinates
+                current_x, current_y = star.get_x(), star.get_y()
+                galaxy.set_destination(current_x, current_y)
+                break
+
+    return best_path
 
 
-def calculate_star_distance(star, ship):
-    return math.dist([star.get_x(), star.get_y()], [ship.get_x(), ship.get_y()])
+def is_closer_to_destination(current_x, current_y, checking_star, destination_star):
+    to_star_distance = math.dist(
+        [destination_star.get_x(), destination_star.get_y()], [current_x, current_y])
+    star_to_destination_distance = math.dist([destination_star.get_x(
+    ), destination_star.get_y()], [checking_star.get_x(), checking_star.get_y()])
+
+    return star_to_destination_distance < to_star_distance
+
+
+def has_mouse_hover(shape, mouse):
+    # if hovering, return true
+    return shape.collidepoint(mouse)
 
 
 def main():
@@ -24,7 +57,7 @@ def main():
     clock = pygame.time.Clock()
 
     width = 800
-    height = 600
+    height = 700
 
     moving = False
     is_recharging = False
@@ -34,24 +67,31 @@ def main():
     step_x = None
     step_y = None
 
+    action_message = '                   '
+
+    action_button = ActionButton()
     draw_info = DrawInfo(width, height)
-    galaxy = Galaxy(width, height, 50)
+    galaxy = Galaxy(width, height - 100, 50)
     ship = Ship(draw_info.width // 2, draw_info.height // 2)
 
     while run:
         clock.tick(60)
-        draw_info.draw(ship, best_path, galaxy)
+        draw_info.draw(ship, best_path, galaxy, action_message)
 
         has_max_fuel = ship.get_fuel() >= ship.get_max_fuel()
         if is_recharging and not has_max_fuel:
-            ship.fuel += 2
+            ship.add_fuel(2)
+
+        has_no_fuel = ship.get_fuel() <= 0
+        if has_no_fuel:
+            action_message = 'Self Destruct'
+        elif galaxy.get_selected_star():
+            action_message = 'Go to Star'
 
         if moving:
-            for star in galaxy.stars:
-                distance_from_ship = calculate_star_distance(ship, star)
-                star.set_distance_from_ship(distance_from_ship)
+            for star in galaxy.get_stars():
+                star.update_distance_from_ship(ship)
 
-            has_no_fuel = ship.get_fuel() <= 0
             has_reached_destination = abs(
                 move_x - ship.get_x()) < 1 and abs(move_y - ship.get_y()) < 1
             if has_reached_destination or has_no_fuel:
@@ -68,29 +108,27 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # left click
                 if event.button == 1:
-                    pass
-
-                # right click
-                elif event.button == 3:
                     for star in galaxy.get_stars():
                         # if they right clicked on a star
-                        if star.has_mouse_hover(event.pos):
-                            galaxy.selected_star = star
-                            print(star)
+                        if has_mouse_hover(star.rect, event.pos):
+                            galaxy.set_selected_star(star)
                             star.show_circle()
                         else:
+                            # galaxy.set_selected_star(None)
                             star.hide_circle()
 
             elif event.type == pygame.MOUSEMOTION:
-                for star in galaxy.stars:
+                for star in galaxy.get_stars():
                     # hovering over star
-                    if star.has_mouse_hover(event.pos):
+                    if has_mouse_hover(star.rect, event.pos):
                         # update distance info
-                        distance_from_ship = calculate_star_distance(ship, star)
-                        star.set_distance_from_ship(distance_from_ship)
+                        star.update_distance_from_ship(ship)
 
                         star.show_name()
                         star.show_distance()
+
+                        # clicked_action = has_mouse_hover(draw_info.action_button.rect, event.pos)
+                        # clicked_go_to_star = clicked_action and draw_info.action_button.message == 'Go to Star'
                     else:
                         star.hide_name()
                         star.hide_distance()
@@ -106,14 +144,14 @@ def main():
 
             # show all star names
             elif event.key == pygame.K_s:
-                for star in galaxy.stars:
-                    distance_from_ship = calculate_star_distance(ship, star)
-                    star.set_distance_from_ship(distance_from_ship)
+                for star in galaxy.get_stars():
+                    star.update_distance_from_ship(ship)
+
                 # toggle
                 galaxy.show_all_names = not galaxy.show_all_names
 
             elif event.key == pygame.K_SPACE:
-                for star in galaxy.stars:
+                for star in galaxy.get_stars():
                     if star.is_selected():
                         move_x, move_y = star.get_x(), star.get_y()
 
@@ -132,18 +170,6 @@ def main():
             elif event.key == pygame.K_w:
                 galaxy.show_star_path = not galaxy.show_star_path
 
-            # show path
-            elif event.key == pygame.K_p:
-                # draw line between you and the star
-                # line = Line()
-                for star in galaxy.stars:
-                    if star.is_selected():
-                        if line:
-                            line = None
-                        else:
-                            line = Line(ship.get_x(), ship.get_y(),
-                                        star.get_x(), star.get_y())
-
             # recharge fuel
             elif event.key == pygame.K_r:
                 closest_star = ship.calculate_closest_star(galaxy)
@@ -159,38 +185,10 @@ def main():
                 best_path = []
 
                 if galaxy.get_selected_star():
-                    current_x, current_y = ship.get_x(), ship.get_y()
+                    best_path = find_best_path(galaxy, ship)
 
-                    galaxy.set_destination(current_x, current_y)
-    
-                    # while(idek)
-                    last_index_check = 0
-                    while(last_index_check != galaxy.get_selected_star()):
-                        sorted_list = sorted(galaxy.stars, key=galaxy.get_distance_from_destination)
-
-                        for star in sorted_list:
-                            if is_positive_distance(current_x, current_y, star, galaxy.get_selected_star()):
-                                best_path.append(star)
-                                last_index_check = star
-
-                                # update coordinates
-                                current_x, current_y = star.get_x(), star.get_y()
-                                galaxy.set_destination(current_x, current_y)
-
-                                break
-            
     pygame.quit()
 
-
-def is_positive_distance(current_x, current_y, checking_star, destination_star):
-    total_ship_to_star_distance = math.dist([destination_star.get_x(), destination_star.get_y()], [current_x, current_y])
-    total_stars_distance = math.dist([destination_star.get_x(), destination_star.get_y()], [checking_star.get_x(), checking_star.get_y()])
-
-    is_closer_than_ship = total_stars_distance < total_ship_to_star_distance
-    return is_closer_than_ship
-
-
-    
 
 if __name__ == '__main__':
     main()

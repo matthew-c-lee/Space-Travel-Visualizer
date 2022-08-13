@@ -1,3 +1,4 @@
+import math
 from dis import dis
 import pygame
 from Classes.Star import *
@@ -20,6 +21,9 @@ class Ship:
 
     def get_fuel(self):
         return self.fuel
+
+    def add_fuel(self, additional_fuel):
+        self.fuel += additional_fuel
 
     def get_max_fuel(self):
         return self.MAX_FUEL

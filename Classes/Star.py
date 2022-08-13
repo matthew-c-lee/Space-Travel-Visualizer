@@ -1,5 +1,6 @@
 import random
 import pygame
+import math
 
 
 class Star:
@@ -58,6 +59,13 @@ class Star:
 
 
 
-    def has_mouse_hover(self, mouse):
-        # if hovering, return true
-        return self.rect.collidepoint(mouse)
+
+
+    def update_distance_from_ship(self, ship):
+        distance_from_ship = calculate_star_distance(self, ship)
+        self.distance_from_ship = distance_from_ship
+
+
+
+def calculate_star_distance(star, ship):
+    return math.dist([star.get_x(), star.get_y()], [ship.get_x(), ship.get_y()])
